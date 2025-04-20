@@ -1,8 +1,6 @@
 #ifndef ARGPARSER_H
 #define ARGPARSER_H
 
-#include <cctype>
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -48,13 +46,15 @@ inline Argument::Argument(std::string r) : long_op{}, field{}, content{} {
   if (r.find("--") != r.npos) {
     this->long_op = {true};
     r.erase(0, 2);
-  } else {
+  } else if (r.find('-') != r.npos) {
     this->long_op = {false};
     r.erase(0, 1);
+  } else {
+    // TODO exception handling
   }
 
   this->field = {r.substr(0, r.find(' '))};
-  r.erase(0, r.find(' '));
+  r.erase(0, r.find(' ') != r.npos ? r.find(' ') + 1 : r.npos);
 
   if (!r.empty()) {
     this->content = {r};
@@ -72,18 +72,23 @@ inline std::ostream &operator<<(std::ostream &rhs, const Argument &lhs) {
 #endif
 
 inline ArgParser::ArgParser(int argc, char **argv) : args{} {
-  this->args.reserve(static_cast<decltype(this->args)::size_type>(argc));
+  // Safe, conservative preset not representative of reality
+  this->args.reserve(static_cast<decltype(this->args)::size_type>(argc - 1));
 
   auto i{1};
   while (i != argc) {
     auto dummy{std::string(*(argv + i)) + [&]() -> std::string {
-      const char *dummy = *(argv + i + 1);
-      if (dummy && std::string(dummy).at(0) != '-') {
-        return ' ' + std::string(dummy);
+      std::string dummy = *(argv + i + 1) ? *(argv + i + 1) : "";
+      if (!dummy.empty() && dummy.at(0) != '-') {
+        return ' ' + dummy;
       } else {
         return "";
       }
     }()};
+
+    if (dummy.find(' ') != dummy.npos) {
+      ++i;
+    }
 
     this->args.emplace_back(dummy);
 
