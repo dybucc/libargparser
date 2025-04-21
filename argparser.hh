@@ -2,6 +2,7 @@
 #define ARGPARSER_H
 
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -50,7 +51,9 @@ inline Argument::Argument(std::string r) : long_op{}, field{}, content{} {
     this->long_op = {false};
     r.erase(0, 1);
   } else {
-    // TODO exception handling
+    throw std::invalid_argument("Invalid argument format: " + r + " [in file " +
+                                __FILE__ + ", line " +
+                                std::to_string(__LINE__) + "]");
   }
 
   this->field = {r.substr(0, r.find(' '))};
