@@ -6,96 +6,99 @@
 #include <string>
 #include <vector>
 
-namespace ArgParser {
+namespace arg_parser {
 
-class Argument final {
+class argument final {
 public:
-  Argument() = default;
-  Argument(std::string);
+  argument() = default;
+  explicit argument(std::string /*r*/);
 
 #ifndef NDEBUG
-  friend std::ostream &operator<<(std::ostream &, const Argument &);
+  friend auto operator<<(std::ostream & /*rhs*/, const argument & /*lhs*/)
+      -> std::ostream &;
 #endif
 
-  const std::string &GetField() const { return field; }
-  const std::string &GetContent() const { return content; }
+  auto get_field() const -> const std::string & { return field; }
+  auto get_content() const -> const std::string & { return content; }
 
-  bool IsLong() const { return long_op; }
+  auto is_long() const -> bool { return long_op; }
 
 private:
   bool long_op = true;
-  std::string field = "";
-  std::string content = "";
+  std::string field;
+  std::string content;
 };
 
-class ArgParser final {
+class arg_parser final {
 public:
-  ArgParser() = delete;
-  ArgParser(int, char **);
+  arg_parser() = delete;
+  arg_parser(int /*argc*/, char ** /*argv*/);
 
 #ifndef NDEBUG
-  friend std::ostream &operator<<(std::ostream &, const ArgParser &);
+  friend auto operator<<(std::ostream & /*rhs*/, const arg_parser & /*lhs*/)
+      -> std::ostream &;
 
-  const std::vector<Argument> &GetArgs() { return args; }
+  auto get_args() -> const std::vector<argument> & { return args; }
 #endif
 
 private:
-  std::vector<Argument> args;
+  std::vector<argument> args;
 };
 
-inline Argument::Argument(std::string r) : long_op{}, field{}, content{} {
-  if (r.find("--") != r.npos) {
+inline argument::argument(std::string cmd) : long_op{} {
+  if (cmd.find("--") not_eq std::string::npos) {
     this->long_op = {true};
-    r.erase(0, 2);
-  } else if (r.find('-') != r.npos) {
+    cmd.erase(0, 2);
+  } else if (cmd.find('-') not_eq std::string::npos) {
     this->long_op = {false};
-    r.erase(0, 1);
+    cmd.erase(0, 1);
   } else {
-    throw std::invalid_argument("Invalid argument format: " + r + " [in file " +
-                                __FILE__ + ", line " +
+    throw std::invalid_argument("Invalid argument format: " + cmd +
+                                " [in file " + __FILE__ + ", line " +
                                 std::to_string(__LINE__) + "]");
   }
 
-  this->field = {r.substr(0, r.find(' '))};
-  r.erase(0, r.find(' ') != r.npos ? r.find(' ') + 1 : r.npos);
+  this->field = {cmd.substr(0, cmd.find(' '))};
+  cmd.erase(0, cmd.find(' ') not_eq std::string::npos ? cmd.find(' ') + 1
+                                                      : std::string::npos);
 
-  if (!r.empty()) {
-    this->content = {r};
+  if (not cmd.empty()) {
+    this->content = {cmd};
   }
 }
 
 #ifndef NDEBUG
-inline std::ostream &operator<<(std::ostream &rhs, const Argument &lhs) {
-  rhs << std::boolalpha << lhs.GetField()
-      << (lhs.GetContent().empty() ? "" : " ") << lhs.GetContent() << ' '
-      << lhs.IsLong() << std::noboolalpha;
+inline auto operator<<(std::ostream &rhs, const argument &lhs)
+    -> std::ostream & {
+  rhs << std::boolalpha << lhs.get_field()
+      << (lhs.get_content().empty() ? "" : " ") << lhs.get_content() << ' '
+      << lhs.is_long() << std::noboolalpha;
 
   return rhs;
 }
 #endif
 
-inline ArgParser::ArgParser(int argc, char **argv) : args{} {
+inline arg_parser::arg_parser(int argc, char **argv) {
   // Safe, conservative preset not representative of reality
   this->args.reserve(static_cast<decltype(this->args)::size_type>(argc - 1));
 
-  auto i{1};
-  while (i != argc) {
-    auto dummy{std::string(*(argv + i)) + [&]() -> std::string {
-      std::string dummy = *(argv + i + 1) ? *(argv + i + 1) : "";
-      if (!dummy.empty() && dummy.at(0) != '-') {
+  auto index{1};
+  while (index not_eq argc) {
+    auto dummy{std::string{*(argv + index)} + [&]() -> std::string {
+      std::string dummy = *(argv + index + 1) ? *(argv + index + 1) : "";
+      if (not dummy.empty() and dummy.at(0) not_eq '-') {
         return ' ' + dummy;
-      } else {
-        return "";
       }
+      return "";
     }()};
 
-    if (dummy.find(' ') != dummy.npos) {
-      ++i;
+    if (dummy.find(' ') not_eq std::string::npos) {
+      ++index;
     }
 
     this->args.emplace_back(dummy);
 
-    if (!*(argv + ++i)) {
+    if (*(argv + ++index) == nullptr) {
       break;
     }
   }
@@ -104,15 +107,16 @@ inline ArgParser::ArgParser(int argc, char **argv) : args{} {
 }
 
 #ifndef NDEBUG
-inline std::ostream &operator<<(std::ostream &rhs, const ArgParser &lhs) {
-  for (const auto &a : lhs.args) {
-    rhs << a;
+inline auto operator<<(std::ostream &rhs, const arg_parser &lhs)
+    -> std::ostream & {
+  for (const auto &arg : lhs.args) {
+    rhs << arg;
   }
 
   return rhs;
 }
 #endif
 
-} // namespace ArgParser
+} // namespace arg_parser
 
 #endif // ARGPARSER_H
